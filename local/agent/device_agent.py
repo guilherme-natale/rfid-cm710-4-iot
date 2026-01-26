@@ -435,8 +435,8 @@ class RFIDDeviceAgent:
         try:
             with open('/proc/meminfo', 'r') as f:
                 lines = f.readlines()
-            total = int([l for l in lines if 'MemTotal' in l][0].split()[1])
-            available = int([l for l in lines if 'MemAvailable' in l][0].split()[1])
+            total = int([line for line in lines if 'MemTotal' in line][0].split()[1])
+            available = int([line for line in lines if 'MemAvailable' in line][0].split()[1])
             return round((1 - available/total) * 100, 1)
         except (FileNotFoundError, ValueError, IndexError, OSError):
             return None
