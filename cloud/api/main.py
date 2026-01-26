@@ -207,10 +207,12 @@ async def root():
 
 @app.get("/health", tags=["Health"])
 async def health_check():
+    """Health check endpoint for monitoring"""
     try:
         await db.command('ping')
         db_status = "healthy"
-    except:
+    except Exception as e:
+        logger.warning(f"Database health check failed: {e}")
         db_status = "unhealthy"
     
     return {
