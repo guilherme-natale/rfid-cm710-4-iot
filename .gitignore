@@ -68,3 +68,6 @@ htmlcov/
 
 # Emergent platform
 .emergent/
+
+# Symlink folder for supervisor compatibility (not part of repo)
+/backend/
