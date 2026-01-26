@@ -601,8 +601,8 @@ class RFIDDeviceAgent:
         if self.rabbitmq_connection and not self.rabbitmq_connection.is_closed:
             try:
                 self.rabbitmq_connection.close()
-            except:
-                pass
+            except Exception as e:
+                logger.debug(f"Error closing RabbitMQ connection: {e}")
         
         logger.info("👋 Agent stopped")
 
