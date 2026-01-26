@@ -428,7 +428,7 @@ class RFIDDeviceAgent:
         try:
             with open('/sys/class/thermal/thermal_zone0/temp', 'r') as f:
                 return float(f.read().strip()) / 1000
-        except:
+        except (FileNotFoundError, ValueError, OSError):
             return None
     
     def _get_memory_usage(self) -> Optional[float]:
@@ -438,7 +438,7 @@ class RFIDDeviceAgent:
             total = int([l for l in lines if 'MemTotal' in l][0].split()[1])
             available = int([l for l in lines if 'MemAvailable' in l][0].split()[1])
             return round((1 - available/total) * 100, 1)
-        except:
+        except (FileNotFoundError, ValueError, IndexError, OSError):
             return None
     
     def _get_disk_usage(self) -> Optional[float]:
@@ -447,14 +447,14 @@ class RFIDDeviceAgent:
             total = stat.f_blocks * stat.f_frsize
             free = stat.f_bfree * stat.f_frsize
             return round((1 - free/total) * 100, 1)
-        except:
+        except (OSError, ZeroDivisionError):
             return None
     
     def _get_uptime(self) -> Optional[int]:
         try:
             with open('/proc/uptime', 'r') as f:
                 return int(float(f.read().split()[0]))
-        except:
+        except (FileNotFoundError, ValueError, OSError):
             return None
     
     def parse_rfid_log_line(self, line: str) -> Optional[dict]:
