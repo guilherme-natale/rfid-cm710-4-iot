@@ -192,7 +192,7 @@ Content-Type: application/json
 ```json
 {
   "device_id": "abc123def456",
-  "status": "online",
+  "device_status": "online",
   "cpu_temp": 52.3,
   "memory_usage": 45.2,
   "disk_usage": 23.1,
