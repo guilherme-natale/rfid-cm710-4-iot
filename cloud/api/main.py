@@ -139,7 +139,7 @@ class RFIDReadingBatch(BaseModel):
 
 class DeviceHeartbeat(BaseModel):
     device_id: str
-    status: str = "online"
+    device_status: str = "online"
     cpu_temp: Optional[float] = None
     memory_usage: Optional[float] = None
     disk_usage: Optional[float] = None
