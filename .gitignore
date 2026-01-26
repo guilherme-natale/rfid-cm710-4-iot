@@ -71,3 +71,7 @@ htmlcov/
 
 # Symlink folder for supervisor compatibility (not part of repo)
 /backend/
+-e 
+# Environment files
+*.env
+*.env.*
