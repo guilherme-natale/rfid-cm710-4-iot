@@ -19,7 +19,15 @@ from motor.motor_asyncio import AsyncIOMotorClient
 from dotenv import load_dotenv
 
 # Load environment variables from .env file
-load_dotenv(os.path.join(os.path.dirname(__file__), '../../backend/.env'))
+# Try multiple locations for flexibility
+for env_path in [
+    os.path.join(os.path.dirname(__file__), '../.env'),  # cloud/.env
+    os.path.join(os.path.dirname(__file__), '../../.env'),  # root/.env
+    '/opt/rfid-cloud/.env',  # production install
+]:
+    if os.path.exists(env_path):
+        load_dotenv(env_path)
+        break
 
 # Logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
