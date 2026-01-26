@@ -405,7 +405,7 @@ class RFIDDeviceAgent:
                 headers={"Authorization": f"Bearer {self.access_token}"},
                 json={
                     "device_id": self.device_id,
-                    "status": "online",
+                    "device_status": "online",
                     "cpu_temp": cpu_temp,
                     "memory_usage": memory_usage,
                     "disk_usage": disk_usage,
