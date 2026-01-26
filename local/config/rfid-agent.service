@@ -1,0 +1,24 @@
+[Unit]
+Description=RFID Device Agent
+After=network-online.target rfid-reader.service
+Wants=network-online.target
+Requires=rfid-reader.service
+
+[Service]
+Type=simple
+User=pi
+EnvironmentFile=-/etc/rfid/environment
+ExecStart=/usr/bin/python3 /opt/rfid/agent/device_agent.py
+Restart=always
+RestartSec=10
+StandardOutput=append:/var/log/rfid/agent.log
+StandardError=append:/var/log/rfid/agent-error.log
+
+# Security hardening
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=read-only
+ReadWritePaths=/var/cache/rfid /var/log/rfid
+
+[Install]
+WantedBy=multi-user.target

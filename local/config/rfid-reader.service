@@ -1,0 +1,20 @@
+[Unit]
+Description=RFID CM710-4 Reader Service
+After=network.target
+
+[Service]
+Type=simple
+User=pi
+Group=gpio
+WorkingDirectory=/opt/rfid/scripts
+ExecStart=/usr/bin/python3 /opt/rfid/scripts/rfid_reader.py
+Restart=always
+RestartSec=10
+StandardOutput=append:/var/log/rfid/reader.log
+StandardError=append:/var/log/rfid/reader-error.log
+
+# Hardware access
+SupplementaryGroups=dialout gpio
+
+[Install]
+WantedBy=multi-user.target
