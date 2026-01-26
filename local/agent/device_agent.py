@@ -220,7 +220,7 @@ class RFIDDeviceAgent:
                 # Cache config (encrypted in production)
                 self._cache_config(config_data)
                 
-                logger.info(f"✅ Configuration received:")
+                logger.info("✅ Configuration received:")
                 logger.info(f"   RabbitMQ: {self.config.rabbitmq_host}:{self.config.rabbitmq_port}")
                 logger.info(f"   Log Level: {self.config.log_level}")
                 logger.info(f"   Offline Mode: {self.config.offline_mode_enabled}")
