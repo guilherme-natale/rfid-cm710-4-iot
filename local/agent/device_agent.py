@@ -615,12 +615,14 @@ def main():
         try:
             with open('/etc/rfid/cloud_url', 'r') as f:
                 cloud_url = f.read().strip()
-        except:
+        except FileNotFoundError:
             pass
+        except Exception as e:
+            logger.warning(f"Error reading cloud_url file: {e}")
     
     if not cloud_url:
-        print("❌ RFID_CLOUD_URL not set and /etc/rfid/cloud_url not found")
-        print("   Run bootstrap.sh first!")
+        logger.error("RFID_CLOUD_URL not set and /etc/rfid/cloud_url not found")
+        logger.error("Run bootstrap.sh first to provision this device!")
         sys.exit(1)
     
     agent = RFIDDeviceAgent(cloud_url)
