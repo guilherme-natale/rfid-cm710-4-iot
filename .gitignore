@@ -1,12 +1,18 @@
-# .gitignore for RFID IoT Project
+# RFID IoT Project - Git Ignore
+# ================================
 
 # ==========================================
-# IMPORTANT: NO .env FILES IN VERSION CONTROL
+# SECURITY: NO SECRETS IN VERSION CONTROL
 # ==========================================
 .env
 .env.*
 !.env.example
 *.env
+secrets/
+*.secret
+*.key
+*.pem
+*.crt
 
 # Python
 __pycache__/
@@ -14,33 +20,9 @@ __pycache__/
 *$py.class
 *.so
 .Python
-build/
-develop-eggs/
-dist/
-downloads/
-eggs/
-.eggs/
-lib/
-lib64/
-parts/
-sdist/
-var/
-wheels/
-*.egg-info/
-.installed.cfg
-*.egg
-MANIFEST
-*.manifest
-*.spec
-pip-log.txt
-pip-delete-this-directory.txt
-
-# Virtual environments
-.venv/
 venv/
+.venv/
 ENV/
-env/
-.rfid-venv/
 
 # IDE
 .vscode/
@@ -48,108 +30,41 @@ env/
 *.swp
 *.swo
 *~
-.project
-.pydevproject
-.settings/
-
-# Node.js (if any frontend)
-node_modules/
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
 
 # Logs
-logs/
 *.log
-/var/log/rfid/
+logs/
 
 # Cache
 .cache/
 *.cache
-/var/cache/rfid/
-
-# Local config (device-specific)
-/etc/rfid/device_id
-/etc/rfid/cloud_url
-/etc/rfid/environment
-
-# Test
-.coverage
-htmlcov/
-.tox/
-.nox/
-coverage.xml
-*.cover
-*.py,cover
-.hypothesis/
-.pytest_cache/
+.ruff_cache/
 
 # Docker
 docker-compose.override.yml
 
-# MongoDB data
+# Data
 data/
 mongo_data/
-
-# SSL certificates
-*.pem
-*.key
-*.crt
-*.csr
-ssl/
-
-# Secrets (NEVER commit!)
-secrets/
-*.secret
-*_secret
-api_keys.txt
-credentials.txt
-passwords.txt
+rabbitmq_data/
 
 # OS
 .DS_Store
-.DS_Store?
-._*
-.Spotlight-V100
-.Trashes
-ehthumbs.db
 Thumbs.db
 
-# Backup files
-*.bak
-*.backup
-*.old
-
-# Temporary files
-tmp/
-temp/
-*.tmp
-*.temp
-
-# Editor files
-*.sublime-project
-*.sublime-workspace
-
-# Build artifacts
-*.pyc
-*.pyo
-*.pyd
-.Python
-
-# Distribution
+# Build
 dist/
 build/
 *.egg-info/
 
-# Jupyter
-.ipynb_checkpoints/
+# Test
+.coverage
+htmlcov/
+.pytest_cache/
 
-# Documentation build
-docs/_build/
+# Local device specific (never commit)
+/local/config/device_id
+/local/cache/
 
 # Emergent platform
 .emergent/
--e 
-# Environment files
-*.env
-*.env.*

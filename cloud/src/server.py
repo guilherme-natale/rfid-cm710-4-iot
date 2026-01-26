@@ -1,13 +1,13 @@
 #!/usr/bin/env python3
 """
 RFID Cloud API Server
-Main entry point - imports from cloud/api/main.py
+Main entry point
 """
 import sys
 import os
 
-# Add cloud api to path
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'cloud', 'api'))
+# Add src to path
+sys.path.insert(0, os.path.dirname(__file__))
 
 from main import app
 
