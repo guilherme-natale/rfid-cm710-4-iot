@@ -149,3 +149,7 @@ docs/_build/
 
 # Emergent platform
 .emergent/
+-e 
+# Environment files
+*.env
+*.env.*
