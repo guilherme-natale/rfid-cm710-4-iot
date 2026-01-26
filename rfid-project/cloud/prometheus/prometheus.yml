@@ -1,0 +1,78 @@
+# =============================================================================
+# Prometheus Configuration - CLOUD
+# =============================================================================
+
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+  external_labels:
+    environment: 'cloud'
+    cluster: 'rfid-cloud'
+
+# Alerting
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets: []
+
+# Rules
+rule_files:
+  - 'alerts.yml'
+
+# Scrape Configs
+scrape_configs:
+  # Prometheus itself
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+        labels:
+          service: 'prometheus'
+
+  # Node Exporter - Hardware metrics
+  - job_name: 'node-exporter'
+    static_configs:
+      - targets: ['node-exporter:9100']
+        labels:
+          service: 'node-exporter'
+
+  # cAdvisor - Container metrics
+  - job_name: 'cadvisor'
+    static_configs:
+      - targets: ['cadvisor:8080']
+        labels:
+          service: 'cadvisor'
+
+  # RFID Consumer metrics
+  - job_name: 'rfid-consumer'
+    static_configs:
+      - targets: ['consumer:9101']
+        labels:
+          service: 'consumer'
+
+  # RFID API metrics
+  - job_name: 'rfid-api'
+    static_configs:
+      - targets: ['api:9102']
+        labels:
+          service: 'api'
+
+  # RabbitMQ metrics
+  - job_name: 'rabbitmq'
+    static_configs:
+      - targets: ['rabbitmq:15692']
+        labels:
+          service: 'rabbitmq'
+    metrics_path: /metrics
+
+  # InfluxDB metrics
+  - job_name: 'influxdb'
+    static_configs:
+      - targets: ['influxdb:8086']
+        labels:
+          service: 'influxdb'
+    metrics_path: /metrics
+
+  # PostgreSQL metrics (via postgres_exporter if added)
+  # - job_name: 'postgres'
+  #   static_configs:
+  #     - targets: ['postgres-exporter:9187']

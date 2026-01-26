@@ -1,0 +1,350 @@
+version: '3.8'
+
+# =============================================================================
+# RFID CM710-4 - Docker Compose CLOUD (DigitalOcean / Contabo)
+# =============================================================================
+# Este arquivo configura todos os serviços para rodar na cloud
+# Recebe dados de múltiplos Raspberry Pis via RabbitMQ
+# =============================================================================
+
+services:
+  # ---------------------------------------------------------------------------
+  # RabbitMQ - Message Broker Central
+  # ---------------------------------------------------------------------------
+  rabbitmq:
+    image: rabbitmq:3-management-alpine
+    container_name: rfid_cloud_rabbitmq
+    hostname: rfid-cloud-rabbitmq
+    ports:
+      - "5672:5672"       # AMQP (para conexões dos Raspberry Pis)
+      - "15672:15672"     # Management UI
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER:-rfid_user}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD:-rfid_password}
+      RABBITMQ_DEFAULT_VHOST: /
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+      - rabbitmq_logs:/var/log/rabbitmq
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "check_running"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+    restart: unless-stopped
+    networks:
+      - rfid_cloud_network
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "50m"
+        max-file: "5"
+
+  # ---------------------------------------------------------------------------
+  # InfluxDB - Time Series Database
+  # ---------------------------------------------------------------------------
+  influxdb:
+    image: influxdb:2.7-alpine
+    container_name: rfid_influxdb
+    ports:
+      - "8086:8086"
+    environment:
+      DOCKER_INFLUXDB_INIT_MODE: setup
+      DOCKER_INFLUXDB_INIT_USERNAME: ${INFLUXDB_USER:-admin}
+      DOCKER_INFLUXDB_INIT_PASSWORD: ${INFLUXDB_PASSWORD:-adminpassword123}
+      DOCKER_INFLUXDB_INIT_ORG: ${INFLUXDB_ORG:-rfid_org}
+      DOCKER_INFLUXDB_INIT_BUCKET: ${INFLUXDB_BUCKET:-rfid_readings}
+      DOCKER_INFLUXDB_INIT_ADMIN_TOKEN: ${INFLUXDB_TOKEN:-my-super-secret-auth-token}
+      DOCKER_INFLUXDB_INIT_RETENTION: 90d
+    volumes:
+      - influxdb_data:/var/lib/influxdb2
+      - influxdb_config:/etc/influxdb2
+    healthcheck:
+      test: ["CMD", "influx", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+    restart: unless-stopped
+    networks:
+      - rfid_cloud_network
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "50m"
+        max-file: "5"
+
+  # ---------------------------------------------------------------------------
+  # PostgreSQL - Metadata & Configuration
+  # ---------------------------------------------------------------------------
+  postgres:
+    image: postgres:15-alpine
+    container_name: rfid_postgres
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-rfid_user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-rfid_password}
+      POSTGRES_DB: ${POSTGRES_DB:-rfid_metadata}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./postgres/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-rfid_user} -d ${POSTGRES_DB:-rfid_metadata}"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+    restart: unless-stopped
+    networks:
+      - rfid_cloud_network
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "50m"
+        max-file: "5"
+
+  # ---------------------------------------------------------------------------
+  # Consumer - Consome mensagens e armazena dados
+  # ---------------------------------------------------------------------------
+  consumer:
+    build:
+      context: ../services/consumer
+      dockerfile: Dockerfile
+    image: rfid-consumer:latest
+    container_name: rfid_consumer
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+      influxdb:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+    environment:
+      # RabbitMQ
+      RABBITMQ_HOST: rabbitmq
+      RABBITMQ_PORT: 5672
+      RABBITMQ_USER: ${RABBITMQ_USER:-rfid_user}
+      RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD:-rfid_password}
+      # InfluxDB
+      INFLUXDB_URL: http://influxdb:8086
+      INFLUXDB_TOKEN: ${INFLUXDB_TOKEN:-my-super-secret-auth-token}
+      INFLUXDB_ORG: ${INFLUXDB_ORG:-rfid_org}
+      INFLUXDB_BUCKET: ${INFLUXDB_BUCKET:-rfid_readings}
+      # PostgreSQL
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: 5432
+      POSTGRES_USER: ${POSTGRES_USER:-rfid_user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-rfid_password}
+      POSTGRES_DB: ${POSTGRES_DB:-rfid_metadata}
+      # Dispositivos (MACs separados por vírgula)
+      DEVICE_MACS: ${DEVICE_MACS:-}
+      # Métricas
+      PROMETHEUS_ENABLED: "true"
+      METRICS_PORT: 9101
+      LOG_LEVEL: INFO
+    expose:
+      - "9101"
+    restart: unless-stopped
+    networks:
+      - rfid_cloud_network
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "50m"
+        max-file: "5"
+
+  # ---------------------------------------------------------------------------
+  # API Server - REST API
+  # ---------------------------------------------------------------------------
+  api:
+    build:
+      context: ../services/api
+      dockerfile: Dockerfile
+    image: rfid-api:latest
+    container_name: rfid_api
+    depends_on:
+      influxdb:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+    ports:
+      - "8000:8000"
+    environment:
+      # InfluxDB
+      INFLUXDB_URL: http://influxdb:8086
+      INFLUXDB_TOKEN: ${INFLUXDB_TOKEN:-my-super-secret-auth-token}
+      INFLUXDB_ORG: ${INFLUXDB_ORG:-rfid_org}
+      INFLUXDB_BUCKET: ${INFLUXDB_BUCKET:-rfid_readings}
+      # PostgreSQL
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: 5432
+      POSTGRES_USER: ${POSTGRES_USER:-rfid_user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-rfid_password}
+      POSTGRES_DB: ${POSTGRES_DB:-rfid_metadata}
+      # CORS
+      CORS_ORIGINS: ${CORS_ORIGINS:-*}
+      # Métricas
+      PROMETHEUS_ENABLED: "true"
+    expose:
+      - "9102"
+    restart: unless-stopped
+    networks:
+      - rfid_cloud_network
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "50m"
+        max-file: "5"
+
+  # ---------------------------------------------------------------------------
+  # Prometheus - Métricas e Monitoramento
+  # ---------------------------------------------------------------------------
+  prometheus:
+    image: prom/prometheus:v2.48.0
+    container_name: rfid_prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./prometheus/alerts.yml:/etc/prometheus/alerts.yml:ro
+      - prometheus_data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--storage.tsdb.retention.time=90d'
+      - '--web.enable-lifecycle'
+      - '--web.enable-admin-api'
+    restart: unless-stopped
+    networks:
+      - rfid_cloud_network
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "50m"
+        max-file: "5"
+
+  # ---------------------------------------------------------------------------
+  # Grafana - Visualização e Dashboards
+  # ---------------------------------------------------------------------------
+  grafana:
+    image: grafana/grafana:10.2.3
+    container_name: rfid_grafana
+    depends_on:
+      - prometheus
+      - influxdb
+    ports:
+      - "3001:3000"
+    environment:
+      GF_SECURITY_ADMIN_USER: ${GRAFANA_USER:-admin}
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_PASSWORD:-admin}
+      GF_INSTALL_PLUGINS: grafana-clock-panel,grafana-piechart-panel,grafana-worldmap-panel
+      GF_SERVER_ROOT_URL: ${GRAFANA_URL:-http://localhost:3001}
+      GF_DASHBOARDS_DEFAULT_HOME_DASHBOARD_PATH: /var/lib/grafana/dashboards/rfid-cloud-overview.json
+      # SMTP para alertas (opcional)
+      GF_SMTP_ENABLED: ${SMTP_ENABLED:-false}
+      GF_SMTP_HOST: ${SMTP_HOST:-}
+      GF_SMTP_USER: ${SMTP_USER:-}
+      GF_SMTP_PASSWORD: ${SMTP_PASSWORD:-}
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./grafana/dashboards:/var/lib/grafana/dashboards:ro
+    restart: unless-stopped
+    networks:
+      - rfid_cloud_network
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "50m"
+        max-file: "5"
+
+  # ---------------------------------------------------------------------------
+  # Node Exporter - Métricas de Hardware do Servidor
+  # ---------------------------------------------------------------------------
+  node-exporter:
+    image: prom/node-exporter:v1.7.0
+    container_name: rfid_node_exporter
+    ports:
+      - "9100:9100"
+    volumes:
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /:/rootfs:ro
+    command:
+      - '--path.procfs=/host/proc'
+      - '--path.sysfs=/host/sys'
+      - '--path.rootfs=/rootfs'
+      - '--collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc)($$|/)'
+    restart: unless-stopped
+    networks:
+      - rfid_cloud_network
+
+  # ---------------------------------------------------------------------------
+  # cAdvisor - Métricas de Containers Docker
+  # ---------------------------------------------------------------------------
+  cadvisor:
+    image: gcr.io/cadvisor/cadvisor:v0.47.2
+    container_name: rfid_cadvisor
+    ports:
+      - "8080:8080"
+    volumes:
+      - /:/rootfs:ro
+      - /var/run:/var/run:ro
+      - /sys:/sys:ro
+      - /var/lib/docker/:/var/lib/docker:ro
+      - /dev/disk/:/dev/disk:ro
+    privileged: true
+    restart: unless-stopped
+    networks:
+      - rfid_cloud_network
+
+  # ---------------------------------------------------------------------------
+  # Nginx - Reverse Proxy (Opcional para HTTPS)
+  # ---------------------------------------------------------------------------
+  nginx:
+    image: nginx:alpine
+    container_name: rfid_nginx
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/ssl:/etc/nginx/ssl:ro
+      - nginx_logs:/var/log/nginx
+    depends_on:
+      - api
+      - grafana
+    restart: unless-stopped
+    networks:
+      - rfid_cloud_network
+    profiles:
+      - with-nginx
+
+# =============================================================================
+# Networks
+# =============================================================================
+networks:
+  rfid_cloud_network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.21.0.0/16
+
+# =============================================================================
+# Volumes
+# =============================================================================
+volumes:
+  rabbitmq_data:
+    driver: local
+  rabbitmq_logs:
+    driver: local
+  influxdb_data:
+    driver: local
+  influxdb_config:
+    driver: local
+  postgres_data:
+    driver: local
+  prometheus_data:
+    driver: local
+  grafana_data:
+    driver: local
+  nginx_logs:
+    driver: local

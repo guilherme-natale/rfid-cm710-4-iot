@@ -1,0 +1,66 @@
+# Dependencies
+node_modules/
+__pycache__/
+*.pyc
+*.pyo
+.Python
+env/
+venv/
+.venv/
+
+# Environment files
+.env
+.env.local
+.env.*.local
+local/.env
+cloud/.env
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+logs/
+
+# Docker volumes (local)
+data/
+
+# Build artifacts
+build/
+dist/
+*.egg-info/
+
+# Test
+.coverage
+htmlcov/
+.pytest_cache/
+
+# Backup files
+*.bak
+*.backup
+
+# SSL certificates (sensitive)
+*.pem
+*.key
+*.crt
+cloud/nginx/ssl/
+
+# Grafana data
+grafana_data/
+
+# Prometheus data
+prometheus_data/
+
+# InfluxDB data
+influxdb_data/
+
+# PostgreSQL data
+postgres_data/

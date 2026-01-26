@@ -1,0 +1,52 @@
+# =============================================================================
+# Prometheus Configuration - LOCAL (Raspberry Pi)
+# =============================================================================
+
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+  external_labels:
+    environment: 'local'
+    device: 'raspberry-pi'
+
+# Alerting
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets: []
+
+# Rules
+rule_files:
+  - 'alerts.yml'
+
+# Scrape Configs
+scrape_configs:
+  # Prometheus itself
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+        labels:
+          service: 'prometheus'
+
+  # Node Exporter - Hardware metrics
+  - job_name: 'node-exporter'
+    static_configs:
+      - targets: ['node-exporter:9100']
+        labels:
+          service: 'node-exporter'
+          device: 'raspberry-pi'
+
+  # RFID Producer metrics
+  - job_name: 'rfid-producer'
+    static_configs:
+      - targets: ['producer:9100']
+        labels:
+          service: 'producer'
+
+  # RabbitMQ metrics (via management plugin)
+  - job_name: 'rabbitmq'
+    static_configs:
+      - targets: ['rabbitmq:15692']
+        labels:
+          service: 'rabbitmq'
+    metrics_path: /metrics

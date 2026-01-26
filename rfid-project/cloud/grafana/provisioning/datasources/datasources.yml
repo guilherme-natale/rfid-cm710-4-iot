@@ -1,0 +1,32 @@
+apiVersion: 1
+
+datasources:
+  - name: Prometheus
+    type: prometheus
+    access: proxy
+    url: http://prometheus:9090
+    isDefault: true
+    editable: false
+
+  - name: InfluxDB
+    type: influxdb
+    access: proxy
+    url: http://influxdb:8086
+    jsonData:
+      version: Flux
+      organization: rfid_org
+      defaultBucket: rfid_readings
+    secureJsonData:
+      token: ${INFLUXDB_TOKEN}
+    editable: false
+
+  - name: PostgreSQL
+    type: postgres
+    url: postgres:5432
+    database: rfid_metadata
+    user: ${POSTGRES_USER}
+    secureJsonData:
+      password: ${POSTGRES_PASSWORD}
+    jsonData:
+      sslmode: disable
+    editable: false
