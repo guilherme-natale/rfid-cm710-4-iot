@@ -417,7 +417,7 @@ async def device_heartbeat(heartbeat: DeviceHeartbeat, device_info: dict = Depen
         {
             "$set": {
                 "last_seen": datetime.now(timezone.utc).isoformat(),
-                "status": heartbeat.status,
+                "status": heartbeat.device_status,
                 "cpu_temp": heartbeat.cpu_temp,
                 "memory_usage": heartbeat.memory_usage,
                 "disk_usage": heartbeat.disk_usage,
